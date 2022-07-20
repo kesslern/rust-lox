@@ -279,7 +279,7 @@ impl<'a> Scanner<'a> {
             self.advance();
         }
 
-        if (self.peek() == Some('.') && Scanner::is_digit(self.peek_next())) {
+        if self.peek() == Some('.') && Scanner::is_digit(self.peek_next()) {
             self.advance();
 
             while Scanner::is_digit(self.peek()) {
