@@ -35,7 +35,7 @@ impl<'a> Scanner<'a> {
             self.line,
         ));
 
-        return &self.tokens;
+        &self.tokens
     }
 
     fn scan_token(&mut self) {

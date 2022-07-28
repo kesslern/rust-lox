@@ -35,7 +35,7 @@ impl Lox {
             }
         };
 
-        self.run(&contents);
+        self.run(contents);
         if self.had_error {
             process::exit(65);
         }
@@ -56,10 +56,10 @@ impl Lox {
             };
 
             let line = line.trim();
-            if line.len() == 0 {
+            if line.is_empty() {
                 continue;
             }
-            self.run(&line);
+            self.run(line);
             self.had_error = false;
         }
     }
