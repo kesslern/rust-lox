@@ -10,7 +10,7 @@ pub enum Expr {
 }
 
 pub trait Visitor<T> {
-    fn visit_expr(self, e: &Expr) -> T;
+    fn visit_expr(&self, e: &Expr) -> T;
 }
 
 impl Display for Expr {

@@ -94,7 +94,7 @@ impl<'a> Scanner<'a> {
             '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' => self.number(),
             _ => {
                 if Scanner::is_alpha(Some(c)) {
-                    self.indentifier();
+                    self.identifier();
                 } else {
                     Lox::error(self.line, &format!("Unexpected character: {}", c))
                 }
@@ -199,24 +199,18 @@ impl<'a> Scanner<'a> {
     }
 
     fn is_digit(c: Option<char>) -> bool {
-        match c {
-            Some('0'..='9') => true,
-            _ => false,
-        }
+        matches!(c, Some('0'..='9'))
     }
 
     fn is_alpha(c: Option<char>) -> bool {
-        match c {
-            Some('a'..='z') | Some('A'..='Z') | Some('_') => true,
-            _ => false,
-        }
+        matches!(c, Some('a'..='z') | Some('A'..='Z') | Some('_'))
     }
 
     fn is_alphanumeric(c: Option<char>) -> bool {
         Scanner::is_digit(c) || Scanner::is_alpha(c)
     }
 
-    fn indentifier(&mut self) {
+    fn identifier(&mut self) {
         while Scanner::is_alphanumeric(self.peek()) {
             self.advance();
         }

@@ -53,10 +53,10 @@ pub enum TokenType {
 }
 
 pub struct Token {
-    token_type: TokenType,
-    lexeme: String,
-    literal: Option<Literal>,
-    line: usize,
+    pub token_type: TokenType,
+    pub lexeme: String,
+    pub literal: Option<Literal>,
+    pub line: usize,
 }
 
 impl Token {
@@ -77,7 +77,11 @@ impl Token {
 
 impl Display for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.lexeme)
+        write!(
+            f,
+            "{:?} [{}] on line {}",
+            self.token_type, self.lexeme, self.line
+        )
     }
 }
 
