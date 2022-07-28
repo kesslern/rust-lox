@@ -52,14 +52,14 @@ pub enum TokenType {
     Eof,
 }
 
-pub struct Token<'a> {
+pub struct Token {
     token_type: TokenType,
     lexeme: String,
-    literal: Option<Literal<'a>>,
+    literal: Option<Literal>,
     line: usize,
 }
 
-impl Token<'_> {
+impl Token {
     pub fn new(
         token_type: TokenType,
         lexeme: String,
@@ -75,39 +75,23 @@ impl Token<'_> {
     }
 }
 
-impl Display for Token<'_> {
+impl Display for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        return match &self.literal {
-            Some(l) => write!(f, "{:?} {} {}", self.token_type, self.lexeme, l),
-            None => write!(f, "{:?} {}", self.token_type, self.lexeme),
-        };
+        write!(f, "{}", self.lexeme)
     }
 }
 
-pub enum LiteralType {
-    String,
-    Number,
-}
-
 // TODO: Remove these pubs
-pub struct Literal<'a> {
-    pub literal_type: LiteralType,
-    pub value: LiteralValue<'a>,
+pub enum Literal {
+    Number(f64),
+    String(String),
 }
 
-// TODO: Remove these pubs
-pub union LiteralValue<'a> {
-    pub number: f64,
-    pub string: &'a str,
-}
-
-impl Display for Literal<'_> {
+impl Display for Literal {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        unsafe {
-            match self.literal_type {
-                LiteralType::String => write!(f, "\"{}\"", self.value.string),
-                LiteralType::Number => write!(f, "{}", self.value.number),
-            }
+        match &*self {
+            Literal::String(s) => write!(f, "\"{}\"", s),
+            Literal::Number(n) => write!(f, "{}", n),
         }
     }
 }

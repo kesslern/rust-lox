@@ -1,11 +1,11 @@
 use crate::{
     lox::Lox,
-    token::{Literal, LiteralType, LiteralValue, Token, TokenType},
+    token::{Literal, Token, TokenType},
 };
 
 pub struct Scanner<'a> {
     source: &'a str,
-    tokens: Vec<Token<'a>>,
+    tokens: Vec<Token>,
     start: usize,
     current: usize,
     line: usize,
@@ -135,7 +135,7 @@ impl<'a> Scanner<'a> {
             .push(Token::new(token_type, text.to_string(), None, self.line));
     }
 
-    fn add_token_literal(&mut self, token_type: TokenType, literal: Literal<'a>) {
+    fn add_token_literal(&mut self, token_type: TokenType, literal: Literal) {
         let text = &self.source[self.start..self.current];
 
         self.tokens.push(Token::new(
@@ -171,12 +171,7 @@ impl<'a> Scanner<'a> {
         // Consume the closing quote
         self.advance();
 
-        let literal = Literal {
-            literal_type: LiteralType::String,
-            value: LiteralValue {
-                string: &self.source[self.start + 1..self.current - 1],
-            },
-        };
+        let literal = Literal::String(self.source[self.start + 1..self.current - 1].to_string());
 
         self.add_token_literal(TokenType::String, literal);
     }
@@ -194,14 +189,11 @@ impl<'a> Scanner<'a> {
             }
         }
 
-        let literal = Literal {
-            literal_type: LiteralType::Number,
-            value: LiteralValue {
-                number: self.source[self.start..self.current]
-                    .parse::<f64>()
-                    .unwrap(),
-            },
-        };
+        let literal = Literal::Number(
+            self.source[self.start..self.current]
+                .parse::<f64>()
+                .unwrap(),
+        );
 
         self.add_token_literal(TokenType::Number, literal);
     }
