@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 #[allow(dead_code)]
 pub enum TokenType {
     // Single-character tokens.
@@ -52,6 +52,7 @@ pub enum TokenType {
     Eof,
 }
 
+#[derive(Clone, Debug)]
 pub struct Token {
     pub token_type: TokenType,
     pub lexeme: String,
@@ -85,10 +86,12 @@ impl Display for Token {
     }
 }
 
-// TODO: Remove these pubs
+#[derive(Clone, Debug)]
 pub enum Literal {
     Number(f64),
     String(String),
+    Boolean(bool),
+    Nil(),
 }
 
 impl Display for Literal {
@@ -96,6 +99,8 @@ impl Display for Literal {
         match self {
             Literal::String(s) => write!(f, "\"{}\"", s),
             Literal::Number(n) => write!(f, "{}", n),
+            Literal::Boolean(b) => write!(f, "{}", b),
+            Literal::Nil() => write!(f, "nil"),
         }
     }
 }

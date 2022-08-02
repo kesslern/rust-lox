@@ -4,7 +4,7 @@ use std::{
     process,
 };
 
-use crate::scanner::Scanner;
+use crate::{ast::Visitor, ast_printer::AstPrinter, parser::Parser, scanner::Scanner};
 
 pub struct Lox {
     had_error: bool,
@@ -67,10 +67,10 @@ impl Lox {
     pub fn run(&self, source: &str) {
         let mut scanner = Scanner::new(source);
         let tokens = scanner.scan_tokens();
-
-        for token in tokens {
-            println!("{}", token);
-        }
+        let mut parser = Parser::new(tokens);
+        let expr = parser.expression();
+        let printer = AstPrinter;
+        println!("{}", printer.visit_expr(&expr));
     }
 
     pub fn error(line: usize, message: &str) {

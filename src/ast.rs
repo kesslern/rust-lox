@@ -3,7 +3,7 @@ use std::fmt::Display;
 use crate::token::{Literal, Token};
 
 pub enum Expr {
-    Binary(Box<Expr>, Token, Box<Expr>),
+    Binary(Box<Expr>, Box<Token>, Box<Expr>),
     Grouping(Box<Expr>),
     Literal(Box<Literal>),
     Unary(Box<Token>, Box<Expr>),
