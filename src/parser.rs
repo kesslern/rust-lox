@@ -3,13 +3,13 @@ use crate::{
     token::{Literal, Token, TokenType},
 };
 
-pub struct Parser<'a> {
-    tokens: &'a Vec<Token>,
+pub struct Parser {
+    tokens: Vec<Token>,
     current: usize,
 }
 
-impl Parser<'_> {
-    pub fn new(tokens: &Vec<Token>) -> Parser {
+impl Parser {
+    pub fn new(tokens: Vec<Token>) -> Parser {
         Parser { tokens, current: 0 }
     }
 
@@ -128,8 +128,8 @@ impl Parser<'_> {
         self.peek().token_type == TokenType::Eof
     }
 
-    fn peek(&self) -> &Token {
-        &self.tokens[self.current]
+    fn peek(&self) -> Token {
+        self.tokens[self.current].clone()
     }
 
     fn previous(&self) -> Token {
