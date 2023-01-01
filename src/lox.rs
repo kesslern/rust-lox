@@ -5,6 +5,7 @@ use std::{
 };
 
 use crate::{ast::Visitor, ast_printer::AstPrinter, parser::Parser, scanner::Scanner};
+use crate::parser::ParseError;
 
 pub struct Lox {
     had_error: bool,
@@ -15,7 +16,7 @@ impl Lox {
         Lox { had_error: false }
     }
 
-    pub fn run_file(&self, path: &str) {
+    pub fn run_file(&mut self, path: &str) {
         // Open the file
         let mut file = match File::open(path) {
             Ok(file) => file,
@@ -52,7 +53,7 @@ impl Lox {
 
             match std::io::stdin().read_line(&mut line) {
                 Ok(_) => (),
-                Err(_) => panic!("idk"),
+                Err(_) => panic!("Error readng user input"),
             };
 
             let line = line.trim();
@@ -64,20 +65,41 @@ impl Lox {
         }
     }
 
-    pub fn run(&self, source: &str) {
+    pub fn run(&mut self, source: &str) {
         let mut scanner = Scanner::new(source);
         let tokens = scanner.scan_tokens();
         let mut parser = Parser::new(tokens);
-        let expr = parser.expression();
-        let printer = AstPrinter;
-        println!("{}", printer.visit_expr(&expr));
+        let expr = parser.parse();
+        match expr {
+            Ok(expr) => {
+                let printer = AstPrinter;
+                println!("{}", printer.visit_expr(&expr));
+            }
+            Err(error) => {
+                self.error(&error);
+            }
+        }
     }
 
-    pub fn error(line: usize, message: &str) {
-        Lox::report(line, "", message);
+    pub fn error(&mut self, error: &ParseError) {
+        let token = error.token.to_owned().map(|t| t.lexeme);
+        Lox::report(error.line, token.as_deref(), &error.message);
+        self.had_error = true;
     }
 
-    pub fn report(line: usize, where_: &str, message: &str) {
-        println!("[line {}] Error{}: {}", line, where_, message);
+    pub fn report(line: Option<usize>, token: Option<&str>, message: &str) {
+        if let Some(line) = line {
+            eprint!("[line {}] Error", line);
+        } else {
+            eprint!("Error");
+        }
+
+        if let Some(token) = token {
+            eprint!(" at '{}': ", token);
+        } else {
+            eprint!(": ");
+        }
+
+        eprintln!("{}", message);
     }
 }

@@ -8,25 +8,52 @@ pub struct Parser {
     current: usize,
 }
 
+#[derive(Clone, Debug)]
+pub struct ParseError {
+    pub message: String,
+    pub token: Option<Token>,
+    pub line: Option<usize>,
+}
+
+impl ParseError {
+    // TODO: Make these constructors into a builder
+    fn new(message: String, line: usize) -> ParseError {
+        ParseError { message, line: Some(line), token: None }
+    }
+    
+    fn message(message: String) -> ParseError {
+        ParseError { message, line: None, token: None }
+    }
+
+    fn message_with_token(message: String, token: Token) -> ParseError {
+        ParseError { message, line: None, token: Some(token) }
+    }
+}
+
+// TODO: Revisit https://craftinginterpreters.com/parsing-expressions.html#synchronizing-a-recursive-descent-parser
 impl Parser {
     pub fn new(tokens: Vec<Token>) -> Parser {
         Parser { tokens, current: 0 }
     }
 
-    pub fn expression(&mut self) -> Expr {
+    pub fn parse(&mut self) -> Result<Expr, ParseError> {
+        self.expression()
+    }
+
+    fn expression(&mut self) -> Result<Expr, ParseError> {
         self.equality()
     }
 
-    fn equality(&mut self) -> Expr {
-        let mut expr = self.comparison();
+    fn equality(&mut self) -> Result<Expr, ParseError> {
+        let mut expr = self.comparison()?;
 
         while self.match_token(TokenType::Equal) || self.match_token(TokenType::EqualEqual) {
             let op = self.previous();
-            let right = self.comparison();
+            let right = self.comparison()?;
             expr = Expr::Binary(Box::new(expr), Box::new(op.clone()), Box::new(right));
         }
 
-        expr
+        Ok(expr)
     }
 
     fn check(&self, token_type: TokenType) -> bool {
@@ -37,8 +64,8 @@ impl Parser {
         self.peek().token_type == token_type
     }
 
-    fn comparison(&mut self) -> Expr {
-        let mut expr = self.term();
+    fn comparison(&mut self) -> Result<Expr, ParseError> {
+        let mut expr = self.term()?;
 
         while self.match_token(TokenType::Greater)
             || self.match_token(TokenType::GreaterEqual)
@@ -46,72 +73,72 @@ impl Parser {
             || self.match_token(TokenType::LessEqual)
         {
             let op = self.previous();
-            let right = self.term();
+            let right = self.term()?;
             expr = Expr::Binary(Box::new(expr), Box::new(op), Box::new(right));
         }
 
-        expr
+        Ok(expr)
     }
 
-    fn term(&mut self) -> Expr {
-        let mut expr = self.factor();
+    fn term(&mut self) -> Result<Expr, ParseError> {
+        let mut expr = self.factor()?;
 
         while self.match_token(TokenType::Minus) || self.match_token(TokenType::Plus) {
             let op = self.previous();
-            let right = self.factor();
+            let right = self.factor()?;
             expr = Expr::Binary(Box::new(expr), Box::new(op), Box::new(right));
         }
 
-        expr
+        Ok(expr)
     }
 
-    fn factor(&mut self) -> Expr {
-        let mut expr = self.unary();
+    fn factor(&mut self) -> Result<Expr, ParseError> {
+        let mut expr = self.unary()?;
 
         if self.match_token(TokenType::Star) || self.match_token(TokenType::Slash) {
             let op = self.previous();
-            let right = self.factor();
+            let right = self.factor()?;
             expr = Expr::Binary(Box::new(expr), Box::new(op), Box::new(right));
         }
 
-        expr
+        Ok(expr)
     }
 
-    fn unary(&mut self) -> Expr {
+    fn unary(&mut self) -> Result<Expr, ParseError> {
         if self.match_token(TokenType::Bang) || self.match_token(TokenType::Minus) {
             let op = self.previous();
-            let right = self.unary();
-            Expr::Unary(Box::new(op), Box::new(right))
+            let right = self.unary()?;
+            Ok(Expr::Unary(Box::new(op), Box::new(right)))
         } else {
             self.primary()
         }
     }
 
-    fn primary(&mut self) -> Expr {
+    fn primary(&mut self) -> Result<Expr, ParseError> {
         if self.match_token(TokenType::True) {
-            Expr::Literal(Box::new(Literal::Boolean(true)))
+            Ok(Expr::Literal(Box::new(Literal::Boolean(true))))
         } else if self.match_token(TokenType::False) {
-            Expr::Literal(Box::new(Literal::Boolean(false)))
+            Ok(Expr::Literal(Box::new(Literal::Boolean(false))))
         } else if self.match_token(TokenType::Nil) {
-            Expr::Literal(Box::new(Literal::Nil()))
+            Ok(Expr::Literal(Box::new(Literal::Nil())))
         } else if self.match_token(TokenType::Number) {
             let literal = self.previous().literal.unwrap();
             match literal {
-                Literal::Number(n) => Expr::Literal(Box::new(Literal::Number(n))),
+                Literal::Number(n) => Ok(Expr::Literal(Box::new(Literal::Number(n)))),
                 _ => panic!("Expected number literal"), // TODO: Remove panic
             }
         } else if self.match_token(TokenType::String) {
             let literal = self.previous().literal.unwrap();
             match literal {
-                Literal::String(s) => Expr::Literal(Box::new(Literal::String(s))),
-                _ => panic!("Expected string literal"), // TODO: Remove panic
+                Literal::String(s) => Ok(Expr::Literal(Box::new(Literal::String(s)))),
+                _ => Err(ParseError::message("Expected string literal".to_owned()))
             }
         } else if self.match_token(TokenType::LeftParen) {
-            let expr = self.expression();
-            self.consume(TokenType::RightParen, "Expect ')' after expression.");
-            Expr::Grouping(Box::new(expr))
+            let expr = self.expression()?;
+            self.consume(TokenType::RightParen, "Expect ')' after expression.")?;
+            Ok(Expr::Grouping(Box::new(expr)))
         } else {
-            panic!("Expected expression, found {}.", self.peek()); // TODO: Remove panic
+            Err(ParseError::message(format!("Expected expression, found {}.", self.peek())))
         }
     }
 
@@ -143,11 +170,11 @@ impl Parser {
         self.previous()
     }
 
-    fn consume(&mut self, token_type: TokenType, message: &str) -> Token {
+    fn consume(&mut self, token_type: TokenType, message: &str) -> Result<Token, ParseError> {
         if self.check(token_type) {
-            self.advance()
+            Ok(self.advance())
         } else {
-            panic!("{} {}", self.peek(), message) //TODO: Remove panic
+            Err(ParseError::message(format!("{} {}", self.peek(), message)))
         }
     }
 }

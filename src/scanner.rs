@@ -96,7 +96,8 @@ impl<'a> Scanner<'a> {
                 if Scanner::is_alpha(Some(c)) {
                     self.identifier();
                 } else {
-                    Lox::error(self.line, &format!("Unexpected character: {}", c))
+                    Lox::report(Some(self.line), None,&format!("Unexpected character: {}", c))
+                    // TODO: how does this break out of the loop?
                 }
             }
         };
@@ -161,7 +162,8 @@ impl<'a> Scanner<'a> {
                 self.line += 1;
             }
             if self.is_at_end() {
-                Lox::error(self.line, "Unterminated string.");
+                // TODO: How does this break out of the loop?
+                Lox::report(Some(self.line), None, "Unterminated string.");
                 return;
             }
 
