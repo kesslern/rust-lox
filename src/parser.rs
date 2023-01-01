@@ -20,7 +20,7 @@ impl ParseError {
     fn new(message: String, line: usize) -> ParseError {
         ParseError { message, line: Some(line), token: None }
     }
-    
+
     fn message(message: String) -> ParseError {
         ParseError { message, line: None, token: None }
     }

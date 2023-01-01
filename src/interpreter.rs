@@ -1,5 +1,4 @@
 use crate::ast::{Expr, Visitor};
-use crate::lox::Lox;
 use crate::token::Literal;
 
 pub struct Interpreter;
@@ -31,12 +30,12 @@ impl Interpreter {
         }
     }
 
-    pub fn interpret(&self, expression: Expr) -> Result<(), String>{
+    pub fn interpret(&self, expression: Expr) -> Result<(), String> {
         match self.visit_expr(&expression) {
             Ok(literal) => {
                 println!("{}", literal);
                 Ok(())
-            },
+            }
             Err(message) => Err(message),
         }
     }
@@ -60,42 +59,42 @@ impl Visitor<Result<Literal, String>> for Interpreter {
                             }
                             _ => Err("Invalid operands for +".to_string()),
                         }
-                    },
+                    }
                     "-" => {
                         Interpreter::check_number_operands(
                             "-", &left, &right,
                             |n1, n2| Literal::Number(n1 - n2))
-                    },
+                    }
                     "*" => {
                         Interpreter::check_number_operands(
                             "*", &left, &right,
                             |n1, n2| Literal::Number(n1 * n2))
-                    },
+                    }
                     "/" => {
                         Interpreter::check_number_operands(
                             "/", &left, &right,
                             |n1, n2| Literal::Number(n1 / n2))
-                    },
+                    }
                     ">" => {
                         Interpreter::check_number_operands(
                             ">", &left, &right,
                             |n1, n2| Literal::Boolean(n1 > n2))
-                    },
+                    }
                     ">=" => {
                         Interpreter::check_number_operands(
                             ">=", &left, &right,
                             |n1, n2| Literal::Boolean(n1 >= n2))
-                    },
+                    }
                     "<" => {
                         Interpreter::check_number_operands(
                             "<", &left, &right,
                             |n1, n2| Literal::Boolean(n1 < n2))
-                    },
+                    }
                     "<=" => {
                         Interpreter::check_number_operands(
                             "<=", &left, &right,
                             |n1, n2| Literal::Boolean(n1 <= n2))
-                    },
+                    }
                     "==" => Ok(Literal::Boolean(Interpreter::is_equal(&left, &right))),
                     "!=" => Ok(Literal::Boolean(!Interpreter::is_equal(&left, &right))),
                     _ => Err(format!("Unknown operator {}", t.lexeme)),
@@ -116,13 +115,11 @@ impl Visitor<Result<Literal, String>> for Interpreter {
                         } else {
                             Err(format!("Expected number literal for operand {}", t.lexeme))
                         }
-                    },
+                    }
                     "!" => Ok(Literal::Boolean(!Interpreter::is_truthy(&right))),
                     _ => Err(format!("Unknown operator {}", t.lexeme)),
                 }
             }
         }
     }
-
-
 }

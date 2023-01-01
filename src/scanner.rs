@@ -96,7 +96,7 @@ impl<'a> Scanner<'a> {
                 if Scanner::is_alpha(Some(c)) {
                     self.identifier();
                 } else {
-                    Lox::report(Some(self.line), None,&format!("Unexpected character: {}", c))
+                    Lox::report(Some(self.line), None, &format!("Unexpected character: {}", c))
                     // TODO: how does this break out of the loop?
                 }
             }
