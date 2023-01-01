@@ -3,8 +3,8 @@ use crate::{
     token::{Literal, Token, TokenType},
 };
 
-pub struct Parser {
-    tokens: Vec<Token>,
+pub struct Parser<'a> {
+    tokens: &'a Vec<Token>,
     current: usize,
 }
 
@@ -31,8 +31,8 @@ impl ParseError {
 }
 
 // TODO: Revisit https://craftinginterpreters.com/parsing-expressions.html#synchronizing-a-recursive-descent-parser
-impl Parser {
-    pub fn new(tokens: Vec<Token>) -> Parser {
+impl<'a> Parser<'a> {
+    pub fn new(tokens: &'a Vec<Token>) -> Parser<'a> {
         Parser { tokens, current: 0 }
     }
 
