@@ -4,7 +4,8 @@ use std::{
     process,
 };
 
-use crate::{ast::Visitor, ast_printer::AstPrinter, parser::Parser, scanner::Scanner};
+use crate::{parser::Parser, scanner::Scanner};
+use crate::interpreter::Interpreter;
 use crate::parser::ParseError;
 
 pub struct Lox {
@@ -72,8 +73,13 @@ impl Lox {
         let expr = parser.parse();
         match expr {
             Ok(expr) => {
-                let printer = AstPrinter;
-                println!("{}", printer.visit_expr(&expr));
+                // TODO: InterpreterError enum type
+                let interpreter = Interpreter;
+                interpreter.interpret(expr).unwrap_or_else(|e| self.error(&ParseError {
+                    message: e,
+                    token: None,
+                    line: None,
+                }));
             }
             Err(error) => {
                 self.error(&error);
