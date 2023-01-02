@@ -5,8 +5,8 @@ use std::{
 };
 
 use crate::{parser::Parser, scanner::Scanner};
+use crate::error::{Error, ErrorType};
 use crate::interpreter::Interpreter;
-use crate::parser::ParseError;
 
 pub struct Lox {
     had_error: bool,
@@ -75,7 +75,8 @@ impl Lox {
             Ok(expr) => {
                 // TODO: InterpreterError enum type
                 let interpreter = Interpreter;
-                interpreter.interpret(expr).unwrap_or_else(|e| self.error(&ParseError {
+                interpreter.interpret(expr).unwrap_or_else(|e| self.error(&Error {
+                    error_type: ErrorType::RuntimeError,
                     message: e,
                     token: None,
                     line: None,
@@ -87,9 +88,8 @@ impl Lox {
         }
     }
 
-    pub fn error(&mut self, error: &ParseError) {
-        let token = error.token.to_owned().map(|t| t.lexeme);
-        Lox::report(error.line, token.as_deref(), &error.message);
+    pub fn error(&mut self, error: &Error) {
+        Lox::report(error.line, error.token.as_deref(), &error.message);
         self.had_error = true;
     }
 

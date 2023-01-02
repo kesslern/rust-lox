@@ -2,32 +2,11 @@ use crate::{
     ast::Expr,
     token::{Literal, Token, TokenType},
 };
+use crate::error::{Error, ErrorBuilder, ErrorType};
 
 pub struct Parser<'a> {
     tokens: &'a Vec<Token>,
     current: usize,
-}
-
-#[derive(Clone, Debug)]
-pub struct ParseError {
-    pub message: String,
-    pub token: Option<Token>,
-    pub line: Option<usize>,
-}
-
-impl ParseError {
-    // TODO: Make these constructors into a builder
-    fn new(message: String, line: usize) -> ParseError {
-        ParseError { message, line: Some(line), token: None }
-    }
-
-    fn message(message: String) -> ParseError {
-        ParseError { message, line: None, token: None }
-    }
-
-    fn message_with_token(message: String, token: Token) -> ParseError {
-        ParseError { message, line: None, token: Some(token) }
-    }
 }
 
 // TODO: Revisit https://craftinginterpreters.com/parsing-expressions.html#synchronizing-a-recursive-descent-parser
@@ -36,15 +15,15 @@ impl<'a> Parser<'a> {
         Parser { tokens, current: 0 }
     }
 
-    pub fn parse(&mut self) -> Result<Expr, ParseError> {
+    pub fn parse(&mut self) -> Result<Expr, Error> {
         self.expression()
     }
 
-    fn expression(&mut self) -> Result<Expr, ParseError> {
+    fn expression(&mut self) -> Result<Expr, Error> {
         self.equality()
     }
 
-    fn equality(&mut self) -> Result<Expr, ParseError> {
+    fn equality(&mut self) -> Result<Expr, Error> {
         let mut expr = self.comparison()?;
 
         while self.match_token(TokenType::Equal) || self.match_token(TokenType::EqualEqual) {
@@ -64,7 +43,7 @@ impl<'a> Parser<'a> {
         self.peek().token_type == token_type
     }
 
-    fn comparison(&mut self) -> Result<Expr, ParseError> {
+    fn comparison(&mut self) -> Result<Expr, Error> {
         let mut expr = self.term()?;
 
         while self.match_token(TokenType::Greater)
@@ -80,7 +59,7 @@ impl<'a> Parser<'a> {
         Ok(expr)
     }
 
-    fn term(&mut self) -> Result<Expr, ParseError> {
+    fn term(&mut self) -> Result<Expr, Error> {
         let mut expr = self.factor()?;
 
         while self.match_token(TokenType::Minus) || self.match_token(TokenType::Plus) {
@@ -92,7 +71,7 @@ impl<'a> Parser<'a> {
         Ok(expr)
     }
 
-    fn factor(&mut self) -> Result<Expr, ParseError> {
+    fn factor(&mut self) -> Result<Expr, Error> {
         let mut expr = self.unary()?;
 
         if self.match_token(TokenType::Star) || self.match_token(TokenType::Slash) {
@@ -104,7 +83,7 @@ impl<'a> Parser<'a> {
         Ok(expr)
     }
 
-    fn unary(&mut self) -> Result<Expr, ParseError> {
+    fn unary(&mut self) -> Result<Expr, Error> {
         if self.match_token(TokenType::Bang) || self.match_token(TokenType::Minus) {
             let op = self.previous();
             let right = self.unary()?;
@@ -114,7 +93,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn primary(&mut self) -> Result<Expr, ParseError> {
+    fn primary(&mut self) -> Result<Expr, Error> {
         if self.match_token(TokenType::True) {
             Ok(Expr::Literal(Box::new(Literal::Boolean(true))))
         } else if self.match_token(TokenType::False) {
@@ -125,20 +104,26 @@ impl<'a> Parser<'a> {
             let literal = self.previous().literal.unwrap();
             match literal {
                 Literal::Number(n) => Ok(Expr::Literal(Box::new(Literal::Number(n)))),
-                _ => panic!("Expected number literal"), // TODO: Remove panic
+                _ => Err(Parser::error_builder("Expected number literal")
+                    .token(self.tokens[self.current].clone())
+                    .build()),
             }
         } else if self.match_token(TokenType::String) {
             let literal = self.previous().literal.unwrap();
             match literal {
                 Literal::String(s) => Ok(Expr::Literal(Box::new(Literal::String(s)))),
-                _ => Err(ParseError::message("Expected string literal".to_owned()))
+                _ => Err(Parser::error_builder("Expected string literal")
+                    .token(self.tokens[self.current].clone())
+                    .build())
             }
         } else if self.match_token(TokenType::LeftParen) {
             let expr = self.expression()?;
             self.consume(TokenType::RightParen, "Expect ')' after expression.")?;
             Ok(Expr::Grouping(Box::new(expr)))
         } else {
-            Err(ParseError::message(format!("Expected expression, found {}.", self.peek())))
+            Err(Parser::error_builder("Expected expression")
+                .token(self.peek())
+                .build())
         }
     }
 
@@ -170,11 +155,17 @@ impl<'a> Parser<'a> {
         self.previous()
     }
 
-    fn consume(&mut self, token_type: TokenType, message: &str) -> Result<Token, ParseError> {
+    fn consume(&mut self, token_type: TokenType, error_message: &str) -> Result<Token, Error> {
         if self.check(token_type) {
             Ok(self.advance())
         } else {
-            Err(ParseError::message(format!("{} {}", self.peek(), message)))
+            Err(Parser::error_builder(error_message)
+                .token(self.peek())
+                .build())
         }
+    }
+
+    fn error_builder(message: &str) -> ErrorBuilder {
+        ErrorBuilder::new(ErrorType::ParseError, message.to_owned())
     }
 }

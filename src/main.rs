@@ -9,6 +9,7 @@ pub mod parser;
 mod scanner;
 mod token;
 mod interpreter;
+mod error;
 
 fn main() {
     let mut lox: Lox = Lox::new();
