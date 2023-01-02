@@ -1,6 +1,7 @@
 use std::fmt::Display;
+use crate::ast::LiteralExpr;
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 #[allow(dead_code)]
 pub enum TokenType {
     // Single-character tokens.
@@ -55,8 +56,8 @@ pub enum TokenType {
 #[derive(Clone, Debug)]
 pub struct Token {
     pub token_type: TokenType,
+    pub literal: Option<LiteralExpr>,
     pub lexeme: String,
-    pub literal: Option<Literal>,
     pub line: usize,
 }
 
@@ -64,13 +65,26 @@ impl Token {
     pub fn new(
         token_type: TokenType,
         lexeme: String,
-        literal: Option<Literal>,
         line: usize,
     ) -> Token {
         Token {
             token_type,
+            literal: None,
             lexeme,
-            literal,
+            line,
+        }
+    }
+
+    pub fn literal(
+        token_type: TokenType,
+        literal: LiteralExpr,
+        lexeme: String,
+        line: usize,
+    ) -> Token {
+        Token {
+            token_type,
+            literal: Some(literal),
+            lexeme,
             line,
         }
     }
@@ -83,24 +97,5 @@ impl Display for Token {
             "{:?} [{}] on line {}",
             self.token_type, self.lexeme, self.line
         )
-    }
-}
-
-#[derive(Clone, Debug)]
-pub enum Literal {
-    Number(f64),
-    String(String),
-    Boolean(bool),
-    Nil(),
-}
-
-impl Display for Literal {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Literal::String(s) => write!(f, "\"{}\"", s),
-            Literal::Number(n) => write!(f, "{}", n),
-            Literal::Boolean(b) => write!(f, "{}", b),
-            Literal::Nil() => write!(f, "nil"),
-        }
     }
 }

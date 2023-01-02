@@ -3,7 +3,6 @@ use std::{env, process};
 use lox::Lox;
 
 mod ast;
-mod ast_printer;
 mod lox;
 pub mod parser;
 mod scanner;

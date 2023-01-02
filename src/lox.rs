@@ -6,7 +6,6 @@ use std::{
 
 use crate::{parser::Parser, scanner::Scanner};
 use crate::error::{Error, ErrorType};
-use crate::interpreter::Interpreter;
 
 pub struct Lox {
     had_error: bool,
@@ -54,7 +53,7 @@ impl Lox {
 
             match std::io::stdin().read_line(&mut line) {
                 Ok(_) => (),
-                Err(_) => panic!("Error readng user input"),
+                Err(_) => panic!("Error reading user input"),
             };
 
             let line = line.trim();
@@ -74,13 +73,14 @@ impl Lox {
         match expr {
             Ok(expr) => {
                 // TODO: InterpreterError enum type
-                let interpreter = Interpreter;
-                interpreter.interpret(expr).unwrap_or_else(|e| self.error(&Error {
-                    error_type: ErrorType::RuntimeError,
-                    message: e,
-                    token: None,
-                    line: None,
-                }));
+                // let interpreter = Interpreter;
+                // interpreter.interpret(expr).unwrap_or_else(|e| self.error(&Error {
+                //     error_type: ErrorType::RuntimeError,
+                //     message: e,
+                //     token: None,
+                //     line: None,
+                // }));
+                println!("{}", expr);
             }
             Err(error) => {
                 self.error(&error);

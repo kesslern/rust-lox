@@ -1,7 +1,9 @@
 use crate::{
     ast::Expr,
-    token::{Literal, Token, TokenType},
+    token::{Token, TokenType},
 };
+use crate::ast::{BinaryExpr, GroupingExpr, LiteralExpr, UnaryExpr};
+use crate::ast::Expr::{Grouping, Literal};
 use crate::error::{Error, ErrorBuilder, ErrorType};
 
 pub struct Parser<'a> {
@@ -29,7 +31,7 @@ impl<'a> Parser<'a> {
         while self.match_token(TokenType::Equal) || self.match_token(TokenType::EqualEqual) {
             let op = self.previous();
             let right = self.comparison()?;
-            expr = Expr::Binary(Box::new(expr), Box::new(op.clone()), Box::new(right));
+            expr = Expr::Binary(BinaryExpr::new(expr, op, right));
         }
 
         Ok(expr)
@@ -53,7 +55,7 @@ impl<'a> Parser<'a> {
         {
             let op = self.previous();
             let right = self.term()?;
-            expr = Expr::Binary(Box::new(expr), Box::new(op), Box::new(right));
+            expr = Expr::Binary(BinaryExpr::new(expr, op, right));
         }
 
         Ok(expr)
@@ -65,7 +67,7 @@ impl<'a> Parser<'a> {
         while self.match_token(TokenType::Minus) || self.match_token(TokenType::Plus) {
             let op = self.previous();
             let right = self.factor()?;
-            expr = Expr::Binary(Box::new(expr), Box::new(op), Box::new(right));
+            expr = Expr::Binary(BinaryExpr::new(expr, op, right));
         }
 
         Ok(expr)
@@ -77,7 +79,7 @@ impl<'a> Parser<'a> {
         if self.match_token(TokenType::Star) || self.match_token(TokenType::Slash) {
             let op = self.previous();
             let right = self.factor()?;
-            expr = Expr::Binary(Box::new(expr), Box::new(op), Box::new(right));
+            expr = Expr::Binary(BinaryExpr::new(expr, op, right));
         }
 
         Ok(expr)
@@ -87,7 +89,7 @@ impl<'a> Parser<'a> {
         if self.match_token(TokenType::Bang) || self.match_token(TokenType::Minus) {
             let op = self.previous();
             let right = self.unary()?;
-            Ok(Expr::Unary(Box::new(op), Box::new(right)))
+            Ok(Expr::Unary(UnaryExpr::new(op, right)))
         } else {
             self.primary()
         }
@@ -95,15 +97,15 @@ impl<'a> Parser<'a> {
 
     fn primary(&mut self) -> Result<Expr, Error> {
         if self.match_token(TokenType::True) {
-            Ok(Expr::Literal(Box::new(Literal::Boolean(true))))
+            Ok(Literal(LiteralExpr::Boolean(true)))
         } else if self.match_token(TokenType::False) {
-            Ok(Expr::Literal(Box::new(Literal::Boolean(false))))
+            Ok(Literal(LiteralExpr::Boolean(false)))
         } else if self.match_token(TokenType::Nil) {
-            Ok(Expr::Literal(Box::new(Literal::Nil())))
+            Ok(Literal(LiteralExpr::Nil()))
         } else if self.match_token(TokenType::Number) {
             let literal = self.previous().literal.unwrap();
             match literal {
-                Literal::Number(n) => Ok(Expr::Literal(Box::new(Literal::Number(n)))),
+                LiteralExpr::Number(n) => Ok(Literal(LiteralExpr::Number(n))),
                 _ => Err(Parser::error_builder("Expected number literal")
                     .token(self.tokens[self.current].clone())
                     .build()),
@@ -111,7 +113,7 @@ impl<'a> Parser<'a> {
         } else if self.match_token(TokenType::String) {
             let literal = self.previous().literal.unwrap();
             match literal {
-                Literal::String(s) => Ok(Expr::Literal(Box::new(Literal::String(s)))),
+                LiteralExpr::String(s) => Ok(Literal(LiteralExpr::String(s))),
                 _ => Err(Parser::error_builder("Expected string literal")
                     .token(self.tokens[self.current].clone())
                     .build())
@@ -119,7 +121,7 @@ impl<'a> Parser<'a> {
         } else if self.match_token(TokenType::LeftParen) {
             let expr = self.expression()?;
             self.consume(TokenType::RightParen, "Expect ')' after expression.")?;
-            Ok(Expr::Grouping(Box::new(expr)))
+            Ok(Grouping(GroupingExpr::new(expr)))
         } else {
             Err(Parser::error_builder("Expected expression")
                 .token(self.peek())

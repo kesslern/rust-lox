@@ -1,7 +1,9 @@
 use crate::{
     lox::Lox,
-    token::{Literal, Token, TokenType},
+    token::{Token, TokenType},
 };
+
+use crate::ast::LiteralExpr;
 
 pub struct Scanner<'a> {
     source: &'a str,
@@ -31,7 +33,6 @@ impl<'a> Scanner<'a> {
         self.tokens.push(Token::new(
             TokenType::Eof,
             String::from(""),
-            None,
             self.line,
         ));
 
@@ -133,16 +134,16 @@ impl<'a> Scanner<'a> {
         let text = &self.source[self.start..self.current];
 
         self.tokens
-            .push(Token::new(token_type, text.to_string(), None, self.line));
+            .push(Token::new(token_type, text.to_string(), self.line));
     }
 
-    fn add_token_literal(&mut self, token_type: TokenType, literal: Literal) {
+    fn add_token_literal(&mut self, token_type: TokenType, literal: LiteralExpr) {
         let text = &self.source[self.start..self.current];
 
-        self.tokens.push(Token::new(
+        self.tokens.push(Token::literal(
             token_type,
+            literal,
             text.to_string(),
-            Some(literal),
             self.line,
         ));
     }
@@ -173,7 +174,7 @@ impl<'a> Scanner<'a> {
         // Consume the closing quote
         self.advance();
 
-        let literal = Literal::String(self.source[self.start + 1..self.current - 1].to_string());
+        let literal = LiteralExpr::String(self.source[self.start + 1..self.current - 1].to_string());
 
         self.add_token_literal(TokenType::String, literal);
     }
@@ -191,7 +192,7 @@ impl<'a> Scanner<'a> {
             }
         }
 
-        let literal = Literal::Number(
+        let literal = LiteralExpr::Number(
             self.source[self.start..self.current]
                 .parse::<f64>()
                 .unwrap(),
