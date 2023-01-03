@@ -5,7 +5,7 @@ use std::{
 };
 
 use crate::{parser::Parser, scanner::Scanner};
-use crate::error::{Error, ErrorType};
+use crate::error::Error;
 
 pub struct Lox {
     had_error: bool,

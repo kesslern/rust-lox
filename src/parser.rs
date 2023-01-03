@@ -96,34 +96,36 @@ impl<'a> Parser<'a> {
     }
 
     fn primary(&mut self) -> Result<Expr, Error> {
-        if self.match_token(TokenType::True) {
-            Ok(Literal(LiteralExpr::Boolean(true)))
-        } else if self.match_token(TokenType::False) {
-            Ok(Literal(LiteralExpr::Boolean(false)))
-        } else if self.match_token(TokenType::Nil) {
-            Ok(Literal(LiteralExpr::Nil()))
-        } else if self.match_token(TokenType::Number) {
-            let literal = self.previous().literal.unwrap();
-            match literal {
-                LiteralExpr::Number(n) => Ok(Literal(LiteralExpr::Number(n))),
-                _ => Err(Parser::error_builder("Expected number literal")
-                    .token(self.tokens[self.current].clone())
-                    .build()),
+        let token = self.advance();
+
+        match token.token_type {
+            TokenType::True => Ok(Literal(LiteralExpr::Boolean(true))),
+            TokenType::False => Ok(Literal(LiteralExpr::Boolean(false))),
+            TokenType::Nil => Ok(Literal(LiteralExpr::Nil())),
+            TokenType::Number => {
+                let literal = token.literal.unwrap();
+                match literal {
+                    LiteralExpr::Number(n) => Ok(Literal(LiteralExpr::Number(n))),
+                    _ => Err(Parser::error_builder("Expected number literal")
+                        .token(self.tokens[self.current].clone())
+                        .build()),
+                }
             }
-        } else if self.match_token(TokenType::String) {
-            let literal = self.previous().literal.unwrap();
-            match literal {
-                LiteralExpr::String(s) => Ok(Literal(LiteralExpr::String(s))),
-                _ => Err(Parser::error_builder("Expected string literal")
-                    .token(self.tokens[self.current].clone())
-                    .build())
+            TokenType::String => {
+                let literal = token.literal.unwrap();
+                match literal {
+                    LiteralExpr::String(s) => Ok(Literal(LiteralExpr::String(s))),
+                    _ => Err(Parser::error_builder("Expected string literal")
+                        .token(self.tokens[self.current].clone())
+                        .build())
+                }
             }
-        } else if self.match_token(TokenType::LeftParen) {
-            let expr = self.expression()?;
-            self.consume(TokenType::RightParen, "Expect ')' after expression.")?;
-            Ok(Grouping(GroupingExpr::new(expr)))
-        } else {
-            Err(Parser::error_builder("Expected expression")
+            TokenType::LeftParen => {
+                let expr = self.expression()?;
+                self.consume(TokenType::RightParen, "Expect ')' after expression.")?;
+                Ok(Grouping(GroupingExpr::new(expr)))
+            }
+            _ => Err(Parser::error_builder("Expected expression")
                 .token(self.peek())
                 .build())
         }
