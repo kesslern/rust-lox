@@ -9,10 +9,6 @@ pub enum Expr {
     Unary(UnaryExpr),
 }
 
-pub trait Visitor<T> {
-    fn visit_expr(&self, e: &Expr) -> T;
-}
-
 impl Display for Expr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {

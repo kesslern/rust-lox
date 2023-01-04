@@ -1,8 +1,8 @@
 use std::fmt::Display;
-use crate::ast::LiteralExpr;
 
 #[derive(Clone, Debug, PartialEq)]
 #[allow(dead_code)]
+// TODO: Implement display trait
 pub enum TokenType {
     // Single-character tokens.
     LeftParen,
@@ -28,9 +28,9 @@ pub enum TokenType {
     LessEqual,
 
     // Literals.
-    Identifier,
-    String,
-    Number,
+    Identifier(String),
+    String(String),
+    Number(f64),
 
     // Keywords.
     And,
@@ -53,38 +53,40 @@ pub enum TokenType {
     Eof,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Token {
-    pub token_type: TokenType,
-    pub literal: Option<LiteralExpr>,
-    pub lexeme: String,
+    token_type: TokenType,
+    span: Span
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Span {
     pub line: usize,
 }
 
 impl Token {
     pub fn new(
         token_type: TokenType,
-        lexeme: String,
-        line: usize,
+        span: Span,
     ) -> Token {
         Token {
             token_type,
-            literal: None,
-            lexeme,
-            line,
+            span,
         }
     }
 
-    pub fn literal(
-        token_type: TokenType,
-        literal: LiteralExpr,
-        lexeme: String,
-        line: usize,
-    ) -> Token {
-        Token {
-            token_type,
-            literal: Some(literal),
-            lexeme,
+    pub fn token_type(&self) -> &TokenType {
+        &self.token_type
+    }
+
+    pub fn span(&self) -> &Span {
+        &self.span
+    }
+}
+
+impl Span {
+    pub fn new(line: usize) -> Span {
+        Span {
             line,
         }
     }
@@ -92,10 +94,11 @@ impl Token {
 
 impl Display for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let span = self.span();
         write!(
             f,
-            "{:?} [{}] on line {}",
-            self.token_type, self.lexeme, self.line
+            "{:?} on line {}",
+            self.token_type, span.line
         )
     }
 }

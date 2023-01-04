@@ -3,9 +3,9 @@ use crate::token::Token;
 
 #[derive(Clone, Debug)]
 pub enum ErrorType {
-    ScannerError,
-    ParseError,
-    RuntimeError,
+    Scanner,
+    Parse,
+    Runtime,
 }
 
 #[derive(Clone, Debug)]
@@ -30,7 +30,7 @@ impl Display for Error {
             write!(f, ": ")?;
         }
 
-        eprintln!("{}", self.message);
+        writeln!(f, "{}", self.message)?;
 
         Ok(())
     }
@@ -49,8 +49,7 @@ impl ErrorBuilder {
     }
 
     pub fn token(mut self, token: Token) -> ErrorBuilder {
-        self.token = Some(token.lexeme);
-        self.line = Some(token.line);
+        self.line = Some(token.span().line);
         self
     }
 

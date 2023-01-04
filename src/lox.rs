@@ -4,8 +4,10 @@ use std::{
     process,
 };
 
-use crate::{parser::Parser, scanner::Scanner};
-use crate::error::Error;
+use crate::{parser::Parser};
+use crate::error::{Error, ErrorBuilder, ErrorType};
+use crate::interpreter::interpret;
+use crate::scanner::scan;
 
 pub struct Lox {
     had_error: bool,
@@ -66,24 +68,28 @@ impl Lox {
     }
 
     pub fn run(&mut self, source: &str) {
-        let mut scanner = Scanner::new(source);
-        let tokens = scanner.scan_tokens();
-        let mut parser = Parser::new(tokens);
-        let expr = parser.parse();
-        match expr {
-            Ok(expr) => {
-                // TODO: InterpreterError enum type
-                // let interpreter = Interpreter;
-                // interpreter.interpret(expr).unwrap_or_else(|e| self.error(&Error {
-                //     error_type: ErrorType::RuntimeError,
-                //     message: e,
-                //     token: None,
-                //     line: None,
-                // }));
-                println!("{}", expr);
+        let tokens = scan(source);
+        match tokens {
+            Ok(tokens) => {
+                let mut parser = Parser::new(tokens);
+                let expr = parser.parse();
+                match expr {
+                    Ok(expr) => {
+                        // TODO: InterpreterError enum type
+                        interpret(expr).unwrap_or_else(|e| self.error(&Error {
+                            error_type: ErrorType::Runtime,
+                            message: e,
+                            token: None,
+                            line: None,
+                        }));
+                    }
+                    Err(error) => {
+                        self.error(&error);
+                    }
+                }
             }
             Err(error) => {
-                self.error(&error);
+                self.error(&ErrorBuilder::new(ErrorType::Parse, error).build());
             }
         }
     }

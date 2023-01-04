@@ -6,14 +6,14 @@ use crate::ast::{BinaryExpr, GroupingExpr, LiteralExpr, UnaryExpr};
 use crate::ast::Expr::{Grouping, Literal};
 use crate::error::{Error, ErrorBuilder, ErrorType};
 
-pub struct Parser<'a> {
-    tokens: &'a Vec<Token>,
+pub struct Parser {
+    tokens: Vec<Token>,
     current: usize,
 }
 
 // TODO: Revisit https://craftinginterpreters.com/parsing-expressions.html#synchronizing-a-recursive-descent-parser
-impl<'a> Parser<'a> {
-    pub fn new(tokens: &'a Vec<Token>) -> Parser<'a> {
+impl Parser {
+    pub fn new(tokens: Vec<Token>) -> Parser {
         Parser { tokens, current: 0 }
     }
 
@@ -42,7 +42,7 @@ impl<'a> Parser<'a> {
             return false;
         }
 
-        self.peek().token_type == token_type
+        self.peek().token_type() == &token_type
     }
 
     fn comparison(&mut self) -> Result<Expr, Error> {
@@ -98,28 +98,12 @@ impl<'a> Parser<'a> {
     fn primary(&mut self) -> Result<Expr, Error> {
         let token = self.advance();
 
-        match token.token_type {
+        match token.token_type() {
             TokenType::True => Ok(Literal(LiteralExpr::Boolean(true))),
             TokenType::False => Ok(Literal(LiteralExpr::Boolean(false))),
             TokenType::Nil => Ok(Literal(LiteralExpr::Nil())),
-            TokenType::Number => {
-                let literal = token.literal.unwrap();
-                match literal {
-                    LiteralExpr::Number(n) => Ok(Literal(LiteralExpr::Number(n))),
-                    _ => Err(Parser::error_builder("Expected number literal")
-                        .token(self.tokens[self.current].clone())
-                        .build()),
-                }
-            }
-            TokenType::String => {
-                let literal = token.literal.unwrap();
-                match literal {
-                    LiteralExpr::String(s) => Ok(Literal(LiteralExpr::String(s))),
-                    _ => Err(Parser::error_builder("Expected string literal")
-                        .token(self.tokens[self.current].clone())
-                        .build())
-                }
-            }
+            TokenType::Number(n) => Ok(Literal(LiteralExpr::Number(*n))),
+            TokenType::String(s) => Ok(Literal(LiteralExpr::String(s.to_string()))),
             TokenType::LeftParen => {
                 let expr = self.expression()?;
                 self.consume(TokenType::RightParen, "Expect ')' after expression.")?;
@@ -141,7 +125,7 @@ impl<'a> Parser<'a> {
     }
 
     fn is_at_end(&self) -> bool {
-        self.peek().token_type == TokenType::Eof
+        self.peek().token_type() == &TokenType::Eof
     }
 
     fn peek(&self) -> Token {
@@ -170,6 +154,6 @@ impl<'a> Parser<'a> {
     }
 
     fn error_builder(message: &str) -> ErrorBuilder {
-        ErrorBuilder::new(ErrorType::ParseError, message.to_owned())
+        ErrorBuilder::new(ErrorType::Parse, message.to_owned())
     }
 }
