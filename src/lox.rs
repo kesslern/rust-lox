@@ -5,7 +5,7 @@ use std::{
 };
 
 use crate::{parser::Parser};
-use crate::error::{Error, ErrorBuilder, ErrorType};
+use crate::error::{Error, Builder, ErrorType};
 use crate::interpreter::interpret;
 use crate::scanner::scan;
 
@@ -76,7 +76,7 @@ impl Lox {
                 match expr {
                     Ok(expr) => {
                         // TODO: InterpreterError enum type
-                        interpret(expr).unwrap_or_else(|e| self.error(&Error {
+                        interpret(&expr).unwrap_or_else(|e| self.error(&Error {
                             error_type: ErrorType::Runtime,
                             message: e,
                             token: None,
@@ -89,7 +89,7 @@ impl Lox {
                 }
             }
             Err(error) => {
-                self.error(&ErrorBuilder::new(ErrorType::Parse, error).build());
+                self.error(&Builder::new(ErrorType::Parse, error).build());
             }
         }
     }

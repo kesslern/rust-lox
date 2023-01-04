@@ -14,7 +14,7 @@ fn is_equal(l1: &LiteralExpr, l2: &LiteralExpr) -> bool {
     match (l1, l2) {
         (LiteralExpr::Nil(), LiteralExpr::Nil()) => true,
         (LiteralExpr::Boolean(b1), LiteralExpr::Boolean(b2)) => b1 == b2,
-        (LiteralExpr::Number(n1), LiteralExpr::Number(n2)) => n1 == n2,
+        (LiteralExpr::Number(n1), LiteralExpr::Number(n2)) => (n1 - n2).abs() < 0.01,
         (LiteralExpr::String(s1), LiteralExpr::String(s2)) => s1 == s2,
         _ => false,
     }
@@ -28,8 +28,8 @@ fn check_number_operands(operator: &str, left: &LiteralExpr, right: &LiteralExpr
     }
 }
 
-pub fn interpret(expression: Expr) -> Result<(), String> {
-    match interpret_expr(&expression) {
+pub fn interpret(expression: &Expr) -> Result<(), String> {
+    match interpret_expr(expression) {
         Ok(literal_expr) => {
             println!("{}", literal_expr);
             Ok(())

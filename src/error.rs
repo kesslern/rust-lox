@@ -36,19 +36,19 @@ impl Display for Error {
     }
 }
 
-pub struct ErrorBuilder {
+pub struct Builder {
     error_type: ErrorType,
     message: String,
     line: Option<usize>,
     token: Option<String>,
 }
 
-impl ErrorBuilder {
-    pub fn new(error_type: ErrorType, message: String) -> ErrorBuilder {
-        ErrorBuilder { error_type, message, line: None, token: None }
+impl Builder {
+    pub fn new(error_type: ErrorType, message: String) -> Builder {
+        Builder { error_type, message, line: None, token: None }
     }
 
-    pub fn token(mut self, token: Token) -> ErrorBuilder {
+    pub fn token(mut self, token: &Token) -> Builder {
         self.line = Some(token.span().line);
         self
     }

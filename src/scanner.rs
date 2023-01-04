@@ -82,17 +82,12 @@ pub fn scan(source: &str) -> Result<Vec<Token>, String> {
                 }
             }
             alpha if is_alpha(alpha) => {
-                match scanner.identifier(c) {
-                    Ok(identifier) => {
-                        if let Some(token_type) = Scanner::match_keyword(&identifier) {
-                            Ok(Some(Token::new(token_type, span)))
-                        } else {
-                            Ok(Some(Token::new(TokenType::Identifier(identifier), span)))
-                        }
-                    }
-                    Err(error) => {
-                        Err(error)
-                    }
+                let identifier = scanner.identifier(c);
+
+                if let Some(token_type) = Scanner::match_keyword(&identifier) {
+                    Ok(Some(Token::new(token_type, span)))
+                } else {
+                    Ok(Some(Token::new(TokenType::Identifier(identifier), span)))
                 }
             }
             _ => {
@@ -192,7 +187,7 @@ impl<'a> Scanner<'a> {
     }
 
 
-    fn identifier(&mut self, first_char: char) -> Result<String, String> {
+    fn identifier(&mut self, first_char: char) -> String {
         let mut buffer = String::new();
         buffer.push(first_char);
 
@@ -205,7 +200,7 @@ impl<'a> Scanner<'a> {
             }
         }
 
-        Ok(buffer)
+        buffer
     }
 
     fn match_keyword(text: &str) -> Option<TokenType> {
