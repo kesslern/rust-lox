@@ -1,3 +1,5 @@
+use std::iter::Peekable;
+use std::slice::Iter;
 use crate::{
     ast::Expr,
     token::{Token, TokenType},
@@ -6,154 +8,151 @@ use crate::ast::{BinaryExpr, GroupingExpr, LiteralExpr, UnaryExpr};
 use crate::ast::Expr::{Grouping, Literal};
 use crate::error::{Error, Builder, ErrorType};
 
-pub struct Parser {
-    tokens: Vec<Token>,
-    current: usize,
+pub fn parse(tokens: Vec<Token>) -> Result<Expr, Error> {
+    let mut ctx = ParseCtx::new(&tokens);
+    expression(&mut ctx)
 }
 
-// TODO: Revisit https://craftinginterpreters.com/parsing-expressions.html#synchronizing-a-recursive-descent-parser
-impl Parser {
-    pub fn new(tokens: Vec<Token>) -> Parser {
-        Parser { tokens, current: 0 }
-    }
+struct ParseCtx<'a> {
+    tokens: Peekable<Iter<'a, Token>>,
+}
 
-    pub fn parse(&mut self) -> Result<Expr, Error> {
-        self.expression()
-    }
-
-    fn expression(&mut self) -> Result<Expr, Error> {
-        self.equality()
-    }
-
-    fn equality(&mut self) -> Result<Expr, Error> {
-        let mut expr = self.comparison()?;
-
-        while self.match_token(&TokenType::Equal) || self.match_token(&TokenType::EqualEqual) {
-            let op = self.previous();
-            let right = self.comparison()?;
-            expr = Expr::Binary(BinaryExpr::new(expr, op, right));
+impl<'a> ParseCtx<'a> {
+    pub fn new(tokens: &'a Vec<Token>) -> ParseCtx<'a> {
+        ParseCtx {
+            tokens: tokens.iter().peekable(),
         }
-
-        Ok(expr)
     }
 
-    fn check(&self, token_type: &TokenType) -> bool {
-        if self.is_at_end() {
-            return false;
-        }
-
-        self.peek().token_type() == token_type
+    fn next(&mut self) -> Option<Token> {
+        self.tokens.next().map(|t| t.clone())
     }
 
-    fn comparison(&mut self) -> Result<Expr, Error> {
-        let mut expr = self.term()?;
-
-        while self.match_token(&TokenType::Greater)
-            || self.match_token(&TokenType::GreaterEqual)
-            || self.match_token(&TokenType::Less)
-            || self.match_token(&TokenType::LessEqual)
-        {
-            let op = self.previous();
-            let right = self.term()?;
-            expr = Expr::Binary(BinaryExpr::new(expr, op, right));
-        }
-
-        Ok(expr)
-    }
-
-    fn term(&mut self) -> Result<Expr, Error> {
-        let mut expr = self.factor()?;
-
-        while self.match_token(&TokenType::Minus) || self.match_token(&TokenType::Plus) {
-            let op = self.previous();
-            let right = self.factor()?;
-            expr = Expr::Binary(BinaryExpr::new(expr, op, right));
-        }
-
-        Ok(expr)
-    }
-
-    fn factor(&mut self) -> Result<Expr, Error> {
-        let mut expr = self.unary()?;
-
-        if self.match_token(&TokenType::Star) || self.match_token(&TokenType::Slash) {
-            let op = self.previous();
-            let right = self.factor()?;
-            expr = Expr::Binary(BinaryExpr::new(expr, op, right));
-        }
-
-        Ok(expr)
-    }
-
-    fn unary(&mut self) -> Result<Expr, Error> {
-        if self.match_token(&TokenType::Bang) || self.match_token(&TokenType::Minus) {
-            let op = self.previous();
-            let right = self.unary()?;
-            Ok(Expr::Unary(UnaryExpr::new(op, right)))
+    fn peek(&mut self) -> Option<Token> {
+        if let Some(token) = self.tokens.peek() {
+            let x1: &Token = *token;
+            let x2: Token = x1.clone();
+            Some(x2)
         } else {
-            self.primary()
+            None
         }
     }
 
-    fn primary(&mut self) -> Result<Expr, Error> {
-        let token = self.advance();
+    fn read_token_if(&mut self, token_type: &TokenType) -> Option<Token> {
+        let token = self.peek();
 
-        match token.token_type() {
-            TokenType::True => Ok(Literal(LiteralExpr::Boolean(true))),
-            TokenType::False => Ok(Literal(LiteralExpr::Boolean(false))),
-            TokenType::Nil => Ok(Literal(LiteralExpr::Nil())),
-            TokenType::Number(n) => Ok(Literal(LiteralExpr::Number(*n))),
-            TokenType::String(s) => Ok(Literal(LiteralExpr::String(s.to_string()))),
-            TokenType::LeftParen => {
-                let expr = self.expression()?;
-                self.consume(&TokenType::RightParen, "Expect ')' after expression.")?;
-                Ok(Grouping(GroupingExpr::new(expr)))
+        match token {
+            Some(token) if token == token_type => {
+                self.next();
+                Some(token)
             }
-            _ => Err(Parser::error_builder("Expected expression")
-                .token(&self.peek())
-                .build())
+            _ => None,
         }
     }
 
-    fn match_token(&mut self, expected: &TokenType) -> bool {
-        if self.check(expected) {
-            self.advance();
-            true
-        } else {
-            false
+    fn read_token_if_any(&mut self, token_type: &[TokenType]) -> Option<Token> {
+        for token in token_type {
+            if let Some(token) = self.read_token_if(token) {
+                return Some(token);
+            }
         }
+
+        None
+    }
+}
+
+fn expression(ctx: &mut ParseCtx) -> Result<Expr, Error> {
+    equality(ctx)
+}
+
+fn equality(ctx: &mut ParseCtx) -> Result<Expr, Error> {
+    let mut expr = comparison(ctx)?;
+
+    while let Some(op) =  ctx.read_token_if_any(&[TokenType::Equal, TokenType::EqualEqual]) {
+        let right = comparison(ctx)?;
+        expr = Expr::Binary(BinaryExpr::new(expr, op, right));
     }
 
-    fn is_at_end(&self) -> bool {
-        self.peek().token_type() == &TokenType::Eof
+    Ok(expr)
+}
+
+fn comparison(ctx: &mut ParseCtx) -> Result<Expr, Error> {
+    let mut expr = term(ctx)?;
+
+    while let Some(op) = ctx.read_token_if_any(&[
+        TokenType::Greater,
+        TokenType::GreaterEqual,
+        TokenType::Less,
+        TokenType::LessEqual])
+    {
+        let right = term(ctx)?;
+        expr = Expr::Binary(BinaryExpr::new(expr, op.clone(), right));
     }
 
-    fn peek(&self) -> Token {
-        self.tokens[self.current].clone()
+    Ok(expr)
+}
+
+fn term(ctx: &mut ParseCtx) -> Result<Expr, Error> {
+    println!("term");
+    let mut expr = factor(ctx)?;
+
+    while let Some(op) = ctx.read_token_if_any(&[TokenType::Minus, TokenType::Plus]) {
+        println!("op: {:?}", op);
+        let right = factor(ctx)?;
+        expr = Expr::Binary(BinaryExpr::new(expr, op.clone(), right));
     }
 
-    fn previous(&self) -> Token {
-        self.tokens[self.current - 1].clone()
+    Ok(expr)
+}
+
+fn factor(ctx: &mut ParseCtx) -> Result<Expr, Error> {
+    println!("factor");
+    let mut expr = unary(ctx)?;
+
+    if let Some(op) = ctx.read_token_if_any(&[TokenType::Star, TokenType::Slash]) {
+        let right = factor(ctx)?;
+        expr = Expr::Binary(BinaryExpr::new(expr, op.clone(), right));
     }
 
-    fn advance(&mut self) -> Token {
-        if !self.is_at_end() {
-            self.current += 1;
+    Ok(expr)
+}
+
+fn unary(ctx: &mut ParseCtx) -> Result<Expr, Error> {
+    println!("unary");
+    if let Some(op) = ctx.read_token_if_any(&[TokenType::Bang, TokenType::Minus]) {
+        let right = unary(ctx)?;
+        Ok(Expr::Unary(UnaryExpr::new(op.clone(), right)))
+    } else {
+        primary(ctx)
+    }
+}
+
+fn primary(ctx: &mut ParseCtx) -> Result<Expr, Error> {
+    let token = ctx.next().expect("Error: Should have a next token");
+    println!("{}", token);
+
+    match token.token_type() {
+        TokenType::True => Ok(Literal(LiteralExpr::Boolean(true))),
+        TokenType::False => Ok(Literal(LiteralExpr::Boolean(false))),
+        TokenType::Nil => Ok(Literal(LiteralExpr::Nil())),
+        TokenType::Number(n) => Ok(Literal(LiteralExpr::Number(*n))),
+        TokenType::String(s) => Ok(Literal(LiteralExpr::String(s.to_string()))),
+        TokenType::LeftParen => {
+            let expr = expression(ctx)?;
+            if let Some(_) = ctx.read_token_if(&TokenType::RightParen) {
+                println!("expr: {}", expr);
+                Ok(Grouping(GroupingExpr::new(expr)))
+            } else {
+                Err(error_builder("Expected ')' after expression")
+                    .build())
+            }
         }
-        self.previous()
+        _ => Err(error_builder("Expected expression")
+            .token(&token)
+            .build())
     }
+}
 
-    fn consume(&mut self, token_type: &TokenType, error_message: &str) -> Result<Token, Error> {
-        if self.check(token_type) {
-            Ok(self.advance())
-        } else {
-            Err(Parser::error_builder(error_message)
-                .token(&self.peek())
-                .build())
-        }
-    }
-
-    fn error_builder(message: &str) -> Builder {
-        Builder::new(ErrorType::Parse, message.to_owned())
-    }
+fn error_builder(message: &str) -> Builder {
+    Builder::new(ErrorType::Parse, message.to_owned())
 }

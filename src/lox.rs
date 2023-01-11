@@ -4,9 +4,9 @@ use std::{
     process,
 };
 
-use crate::{parser::Parser};
 use crate::error::{Error, Builder, ErrorType};
 use crate::interpreter::interpret;
+use crate::parser::parse;
 use crate::scanner::scan;
 
 pub struct Lox {
@@ -71,8 +71,7 @@ impl Lox {
         let tokens = scan(source);
         match tokens {
             Ok(tokens) => {
-                let mut parser = Parser::new(tokens);
-                let expr = parser.parse();
+                let expr = parse(tokens);
                 match expr {
                     Ok(expr) => {
                         // TODO: InterpreterError enum type

@@ -84,6 +84,25 @@ impl Token {
     }
 }
 
+impl PartialEq<TokenType> for &Token {
+    fn eq(&self, other: &TokenType) -> bool {
+        self.token_type == *other
+    }
+}
+
+impl PartialEq<TokenType> for Token {
+    fn eq(&self, other: &TokenType) -> bool {
+        self.token_type == *other
+    }
+}
+
+impl PartialEq<&TokenType> for Token {
+    fn eq(&self, other: &&TokenType) -> bool {
+        self.token_type == **other
+    }
+}
+
+
 impl Span {
     pub fn new(line: usize) -> Span {
         Span {
