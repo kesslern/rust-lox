@@ -1,3 +1,4 @@
+use std::fmt::{Display, Formatter};
 use std::iter::Peekable;
 use std::slice::Iter;
 use crate::{
@@ -6,9 +7,23 @@ use crate::{
 };
 use crate::ast::{BinaryExpr, GroupingExpr, LiteralExpr, UnaryExpr};
 use crate::ast::Expr::{Grouping, Literal};
-use crate::error::{Error, Builder, ErrorType};
+use crate::parser::ParseError::{ExpectedExpression, ExpectedToken};
 
-pub fn parse(tokens: Vec<Token>) -> Result<Expr, Error> {
+pub enum ParseError {
+    ExpectedToken(TokenType),
+    ExpectedExpression(),
+}
+
+impl Display for ParseError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ExpectedToken(token_type) => write!(f, "Expected token of type {:?}", token_type),
+            ExpectedExpression() => write!(f, "Expected expression"),
+        }
+    }
+}
+
+pub fn parse(tokens: Vec<Token>) -> Result<Expr, ParseError> {
     let mut ctx = ParseCtx::new(&tokens);
     expression(&mut ctx)
 }
@@ -61,11 +76,11 @@ impl<'a> ParseCtx<'a> {
     }
 }
 
-fn expression(ctx: &mut ParseCtx) -> Result<Expr, Error> {
+fn expression(ctx: &mut ParseCtx) -> Result<Expr, ParseError> {
     equality(ctx)
 }
 
-fn equality(ctx: &mut ParseCtx) -> Result<Expr, Error> {
+fn equality(ctx: &mut ParseCtx) -> Result<Expr, ParseError> {
     let mut expr = comparison(ctx)?;
 
     while let Some(op) =  ctx.read_token_if_any(&[TokenType::Equal, TokenType::EqualEqual]) {
@@ -76,7 +91,7 @@ fn equality(ctx: &mut ParseCtx) -> Result<Expr, Error> {
     Ok(expr)
 }
 
-fn comparison(ctx: &mut ParseCtx) -> Result<Expr, Error> {
+fn comparison(ctx: &mut ParseCtx) -> Result<Expr, ParseError> {
     let mut expr = term(ctx)?;
 
     while let Some(op) = ctx.read_token_if_any(&[
@@ -92,12 +107,10 @@ fn comparison(ctx: &mut ParseCtx) -> Result<Expr, Error> {
     Ok(expr)
 }
 
-fn term(ctx: &mut ParseCtx) -> Result<Expr, Error> {
-    println!("term");
+fn term(ctx: &mut ParseCtx) -> Result<Expr, ParseError> {
     let mut expr = factor(ctx)?;
 
     while let Some(op) = ctx.read_token_if_any(&[TokenType::Minus, TokenType::Plus]) {
-        println!("op: {:?}", op);
         let right = factor(ctx)?;
         expr = Expr::Binary(BinaryExpr::new(expr, op.clone(), right));
     }
@@ -105,8 +118,7 @@ fn term(ctx: &mut ParseCtx) -> Result<Expr, Error> {
     Ok(expr)
 }
 
-fn factor(ctx: &mut ParseCtx) -> Result<Expr, Error> {
-    println!("factor");
+fn factor(ctx: &mut ParseCtx) -> Result<Expr, ParseError> {
     let mut expr = unary(ctx)?;
 
     if let Some(op) = ctx.read_token_if_any(&[TokenType::Star, TokenType::Slash]) {
@@ -117,8 +129,7 @@ fn factor(ctx: &mut ParseCtx) -> Result<Expr, Error> {
     Ok(expr)
 }
 
-fn unary(ctx: &mut ParseCtx) -> Result<Expr, Error> {
-    println!("unary");
+fn unary(ctx: &mut ParseCtx) -> Result<Expr, ParseError> {
     if let Some(op) = ctx.read_token_if_any(&[TokenType::Bang, TokenType::Minus]) {
         let right = unary(ctx)?;
         Ok(Expr::Unary(UnaryExpr::new(op.clone(), right)))
@@ -127,9 +138,8 @@ fn unary(ctx: &mut ParseCtx) -> Result<Expr, Error> {
     }
 }
 
-fn primary(ctx: &mut ParseCtx) -> Result<Expr, Error> {
+fn primary(ctx: &mut ParseCtx) -> Result<Expr, ParseError> {
     let token = ctx.next().expect("Error: Should have a next token");
-    println!("{}", token);
 
     match token.token_type() {
         TokenType::True => Ok(Literal(LiteralExpr::Boolean(true))),
@@ -140,19 +150,11 @@ fn primary(ctx: &mut ParseCtx) -> Result<Expr, Error> {
         TokenType::LeftParen => {
             let expr = expression(ctx)?;
             if let Some(_) = ctx.read_token_if(&TokenType::RightParen) {
-                println!("expr: {}", expr);
                 Ok(Grouping(GroupingExpr::new(expr)))
             } else {
-                Err(error_builder("Expected ')' after expression")
-                    .build())
+                Err(ExpectedToken(TokenType::RightParen))
             }
         }
-        _ => Err(error_builder("Expected expression")
-            .token(&token)
-            .build())
+        _ => Err(ExpectedExpression())
     }
-}
-
-fn error_builder(message: &str) -> Builder {
-    Builder::new(ErrorType::Parse, message.to_owned())
 }

@@ -3,8 +3,8 @@ use std::{
     io::{Read, Write},
     process,
 };
+use std::fmt::Display;
 
-use crate::error::{Error, Builder, ErrorType};
 use crate::interpreter::interpret;
 use crate::parser::parse;
 use crate::scanner::scan;
@@ -74,13 +74,7 @@ impl Lox {
                 let expr = parse(tokens);
                 match expr {
                     Ok(expr) => {
-                        // TODO: InterpreterError enum type
-                        interpret(&expr).unwrap_or_else(|e| self.error(&Error {
-                            error_type: ErrorType::Runtime,
-                            message: e,
-                            token: None,
-                            line: None,
-                        }));
+                        interpret(&expr).unwrap_or_else(|e| self.error(&e));
                     }
                     Err(error) => {
                         self.error(&error);
@@ -88,29 +82,13 @@ impl Lox {
                 }
             }
             Err(error) => {
-                self.error(&Builder::new(ErrorType::Parse, error).build());
+                self.error(&error);
             }
         }
     }
 
-    pub fn error(&mut self, error: &Error) {
-        Lox::report(error.line, error.token.as_deref(), &error.message);
+    pub fn error(&mut self, error: &impl Display) {
+        println!("{}", error);
         self.had_error = true;
-    }
-
-    pub fn report(line: Option<usize>, token: Option<&str>, message: &str) {
-        if let Some(line) = line {
-            eprint!("[line {}] Error", line);
-        } else {
-            eprint!("Error");
-        }
-
-        if let Some(token) = token {
-            eprint!(" at '{}': ", token);
-        } else {
-            eprint!(": ");
-        }
-
-        eprintln!("{}", message);
     }
 }
