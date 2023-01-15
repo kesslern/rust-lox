@@ -1,8 +1,6 @@
+use crate::token::{Token, TokenType};
 use std::iter::Peekable;
 use std::str::Chars;
-use crate::{
-    token::{Token, TokenType},
-};
 
 use crate::token::Span;
 
@@ -61,26 +59,14 @@ pub fn scan(source: &str) -> Result<Vec<Token>, String> {
                 }
             }
             ' ' | '\r' | '\t' | '\n' => Ok(None), // Ignore
-            '"' => {
-                match scanner.string() {
-                    Ok(string) => {
-                        Ok(Some(Token::new(TokenType::String(string), span)))
-                    }
-                    Err(error) => {
-                        Err(error)
-                    }
-                }
-            }
-            '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' => {
-                match scanner.number(c) {
-                    Ok(number) => {
-                        Ok(Some(Token::new(TokenType::Number(number), span)))
-                    }
-                    Err(error) => {
-                        Err(error)
-                    }
-                }
-            }
+            '"' => match scanner.string() {
+                Ok(string) => Ok(Some(Token::new(TokenType::String(string), span))),
+                Err(error) => Err(error),
+            },
+            '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' => match scanner.number(c) {
+                Ok(number) => Ok(Some(Token::new(TokenType::Number(number), span))),
+                Err(error) => Err(error),
+            },
             alpha if is_alpha(alpha) => {
                 let identifier = scanner.identifier(c);
 
@@ -90,9 +76,7 @@ pub fn scan(source: &str) -> Result<Vec<Token>, String> {
                     Ok(Some(Token::new(TokenType::Identifier(identifier), span)))
                 }
             }
-            _ => {
-                Err(format!("Unexpected character: {}", c))
-            }
+            _ => Err(format!("Unexpected character: {}", c)),
         };
 
         match token {
@@ -183,9 +167,10 @@ impl<'a> Scanner<'a> {
             }
         }
 
-        buffer.parse().map_err(|_| format!("Invalid number: {}", buffer))
+        buffer
+            .parse()
+            .map_err(|_| format!("Invalid number: {}", buffer))
     }
-
 
     fn identifier(&mut self, first_char: char) -> String {
         let mut buffer = String::new();

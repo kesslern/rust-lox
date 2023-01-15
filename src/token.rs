@@ -56,7 +56,7 @@ pub enum TokenType {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Token {
     token_type: TokenType,
-    span: Span
+    span: Span,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -65,14 +65,8 @@ pub struct Span {
 }
 
 impl Token {
-    pub fn new(
-        token_type: TokenType,
-        span: Span,
-    ) -> Token {
-        Token {
-            token_type,
-            span,
-        }
+    pub fn new(token_type: TokenType, span: Span) -> Token {
+        Token { token_type, span }
     }
 
     pub fn token_type(&self) -> &TokenType {
@@ -102,22 +96,15 @@ impl PartialEq<&TokenType> for Token {
     }
 }
 
-
 impl Span {
     pub fn new(line: usize) -> Span {
-        Span {
-            line,
-        }
+        Span { line }
     }
 }
 
 impl Display for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let span = self.span();
-        write!(
-            f,
-            "{:?} on line {}",
-            self.token_type, span.line
-        )
+        write!(f, "{:?} on line {}", self.token_type, span.line)
     }
 }

@@ -3,11 +3,11 @@ use std::{env, process};
 use lox::Lox;
 
 mod ast;
+mod interpreter;
 mod lox;
 pub mod parser;
 mod scanner;
 mod token;
-mod interpreter;
 
 fn main() {
     let mut lox: Lox = Lox::new();

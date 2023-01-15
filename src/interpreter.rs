@@ -1,8 +1,10 @@
-use std::fmt::{Display, Formatter};
 use crate::ast::Expr::Literal;
 use crate::ast::{Expr, LiteralExpr};
-use crate::interpreter::RuntimeError::{ExpectedNumberLiterals, InvalidLiteralForUnary, InvalidOperandError, UnknownOperatorError};
+use crate::interpreter::RuntimeError::{
+    ExpectedNumberLiterals, InvalidLiteralForUnary, InvalidOperandError, UnknownOperatorError,
+};
 use crate::token::{Token, TokenType};
+use std::fmt::{Display, Formatter};
 
 pub enum RuntimeError {
     ExpectedNumberLiterals(String),

@@ -1,13 +1,13 @@
-use std::fmt::{Display, Formatter};
-use std::iter::Peekable;
-use std::slice::Iter;
+use crate::ast::Expr::{Grouping, Literal};
+use crate::ast::{BinaryExpr, GroupingExpr, LiteralExpr, UnaryExpr};
+use crate::parser::ParseError::{ExpectedExpression, ExpectedToken};
 use crate::{
     ast::Expr,
     token::{Token, TokenType},
 };
-use crate::ast::{BinaryExpr, GroupingExpr, LiteralExpr, UnaryExpr};
-use crate::ast::Expr::{Grouping, Literal};
-use crate::parser::ParseError::{ExpectedExpression, ExpectedToken};
+use std::fmt::{Display, Formatter};
+use std::iter::Peekable;
+use std::slice::Iter;
 
 pub enum ParseError {
     ExpectedToken(TokenType),
@@ -83,7 +83,7 @@ fn expression(ctx: &mut ParseCtx) -> Result<Expr, ParseError> {
 fn equality(ctx: &mut ParseCtx) -> Result<Expr, ParseError> {
     let mut expr = comparison(ctx)?;
 
-    while let Some(op) =  ctx.read_token_if_any(&[TokenType::Equal, TokenType::EqualEqual]) {
+    while let Some(op) = ctx.read_token_if_any(&[TokenType::Equal, TokenType::EqualEqual]) {
         let right = comparison(ctx)?;
         expr = Expr::Binary(BinaryExpr::new(expr, op, right));
     }
@@ -98,8 +98,8 @@ fn comparison(ctx: &mut ParseCtx) -> Result<Expr, ParseError> {
         TokenType::Greater,
         TokenType::GreaterEqual,
         TokenType::Less,
-        TokenType::LessEqual])
-    {
+        TokenType::LessEqual,
+    ]) {
         let right = term(ctx)?;
         expr = Expr::Binary(BinaryExpr::new(expr, op.clone(), right));
     }
@@ -155,6 +155,6 @@ fn primary(ctx: &mut ParseCtx) -> Result<Expr, ParseError> {
                 Err(ExpectedToken(TokenType::RightParen))
             }
         }
-        _ => Err(ExpectedExpression())
+        _ => Err(ExpectedExpression()),
     }
 }

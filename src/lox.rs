@@ -1,9 +1,9 @@
+use std::fmt::Display;
 use std::{
     fs::File,
     io::{Read, Write},
     process,
 };
-use std::fmt::Display;
 
 use crate::interpreter::interpret;
 use crate::parser::parse;
